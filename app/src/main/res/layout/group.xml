@@ -75,7 +75,7 @@
         app:layout_constraintEnd_toStartOf="@+id/cbAssigned"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.appcompat.widget.AppCompatCheckBox
+    <eu.faircode.xlua.ui.dashboard.DashboardToggle
         android:id="@+id/cbAssigned"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

@@ -59,7 +59,7 @@
                 app:layout_constraintStart_toEndOf="@+id/ivExpanderHookItem"
                 app:layout_constraintTop_toBottomOf="@+id/tvHookId" />
 
-            <CheckBox
+            <eu.faircode.xlua.ui.dashboard.DashboardToggle
                 android:id="@+id/cbHookItemEnabled"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -264,14 +264,14 @@
                     android:orientation="horizontal"
                     android:layout_marginTop="2dp">
 
-                    <CheckBox
+                    <eu.faircode.xlua.ui.dashboard.DashboardToggle
                         android:id="@+id/cbHookOptional"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/hook_label_optional"
                         android:textAppearance="@android:style/TextAppearance.Small" />
 
-                    <CheckBox
+                    <eu.faircode.xlua.ui.dashboard.DashboardToggle
                         android:id="@+id/cbHookUsage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -279,7 +279,7 @@
                         android:layout_marginStart="8dp"
                         android:textAppearance="@android:style/TextAppearance.Small" />
 
-                    <CheckBox
+                    <eu.faircode.xlua.ui.dashboard.DashboardToggle
                         android:id="@+id/cbHookNotify"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

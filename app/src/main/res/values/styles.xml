@@ -129,6 +129,10 @@
         <item name="colorSystem">@color/lightColorSystem</item>
         <item name="colorDrawerScrim">@color/lightColorDrawerScrim</item>
         <item name="colorDrawerBackground">@color/lightColorDrawerBackground</item>
+        <item name="android:colorBackground">@color/dashboard_light_background</item>
+        <item name="android:windowBackground">@color/dashboard_light_background</item>
+        <item name="android:textColorPrimary">@color/dashboard_light_text</item>
+        <item name="android:textColorSecondary">@color/dashboard_light_secondary</item>
     </style>
 
     <!-- Embedded MaterialToolbar variant used by the redesigned 1.5.8 screens. -->
@@ -212,6 +216,10 @@
         <item name="colorSystem">@color/darkColorSystem</item>
         <item name="colorDrawerScrim">@color/darkColorDrawerScrim</item>
         <item name="colorDrawerBackground">@color/darkColorDrawerBackground</item>
+        <item name="android:colorBackground">@color/dashboard_background</item>
+        <item name="android:windowBackground">@color/dashboard_background</item>
+        <item name="android:textColorPrimary">@color/dashboard_text</item>
+        <item name="android:textColorSecondary">@color/dashboard_text_secondary</item>
     </style>
 
     <style name="AppThemeDark.NoActionBar" parent="AppThemeDark">

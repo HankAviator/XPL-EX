@@ -33,7 +33,7 @@
                 app:layout_constraintStart_toEndOf="@+id/ivBtSaveSettingSetting"
                 app:layout_constraintTop_toBottomOf="@+id/spSettingRandomizerSpinner" />
 
-            <CheckBox
+            <eu.faircode.xlua.ui.dashboard.DashboardToggle
                 android:id="@+id/cbSettingEnabled"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -95,7 +95,7 @@
                 app:layout_constraintStart_toEndOf="@+id/ivBtDeleteSetting"
                 app:layout_constraintTop_toTopOf="@+id/ivBtSettingReset" />
 
-            <Spinner
+            <eu.faircode.xlua.ui.dashboard.DashboardSelector
                 android:id="@+id/spSettingRandomizerSpinner"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"

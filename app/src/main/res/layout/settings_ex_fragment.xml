@@ -380,14 +380,14 @@
 
             </com.google.android.flexbox.FlexboxLayout>
 
-            <CheckBox
+                <eu.faircode.xlua.ui.dashboard.DashboardToggle
                 android:id="@+id/cbForceStop"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/title_force_stop"
                 app:layout_constraintStart_toStartOf="@+id/tvAppIslandPackageUid"
                 app:layout_constraintTop_toBottomOf="@+id/tvAppIslandPackageName" />
-            <CheckBox
+            <eu.faircode.xlua.ui.dashboard.DashboardToggle
                 android:enabled="false"
                 android:id="@+id/cbUseDefaultValues"
                 android:layout_width="wrap_content"

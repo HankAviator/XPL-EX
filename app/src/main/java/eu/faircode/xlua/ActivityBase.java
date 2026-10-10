@@ -22,11 +22,13 @@ package eu.faircode.xlua;
 import android.content.SharedPreferences;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Process;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -129,6 +131,7 @@ public class ActivityBase extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        applyUserAccent();
         String selected = readThemePreference();
         String resolved = resolveTheme(selected);
         boolean dynamic = preferences().getBoolean("monet_enabled", false);
@@ -136,6 +139,27 @@ public class ActivityBase extends AppCompatActivity {
         if (!selected.equals(theme) || !resolved.equals(resolvedTheme)
                 || dynamic != monetEnabled || !currentLanguage.equals(language))
             recreate();
+    }
+
+    private void applyUserAccent() {
+        String hex = preferences().getString("custom_theme_color", "");
+        if (hex == null || !hex.matches("#[0-9a-fA-F]{6}")) return;
+        try {
+            int color = Color.parseColor(hex);
+            int[] ids = {R.id.toolbar, R.id.toolbar_advanced, R.id.toolbar_settings,
+                    R.id.toolbar_hooks, R.id.toolbar_config, R.id.toolbar_cpu,
+                    R.id.toolbar_database, R.id.toolbar_help, R.id.app_bar_layout,
+                    R.id.app_bar_layout_advanced, R.id.app_bar_layout_settings,
+                    R.id.app_bar_layout_hooks, R.id.app_bar_layout_config,
+                    R.id.app_bar_layout_cpu, R.id.app_bar_layout_database,
+                    R.id.app_bar_layout_help};
+            for (int id : ids) {
+                View view = findViewById(id);
+                if (view != null) view.setBackgroundColor(color);
+            }
+            getWindow().setStatusBarColor(color);
+        } catch (IllegalArgumentException ignored) {
+        }
     }
 
     public void forceEdgeToEdgeUpdate() {

@@ -108,7 +108,7 @@
 
 
 
-    <androidx.appcompat.widget.AppCompatCheckBox
+    <eu.faircode.xlua.ui.dashboard.DashboardToggle
         android:id="@+id/cbAssigned"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -130,7 +130,7 @@
         app:layout_constraintStart_toEndOf="@id/ivIcon"
         app:layout_constraintTop_toBottomOf="@id/ivIcon" />
 
-    <androidx.appcompat.widget.AppCompatCheckBox
+    <eu.faircode.xlua.ui.dashboard.DashboardToggle
         android:id="@+id/cbForceStop"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

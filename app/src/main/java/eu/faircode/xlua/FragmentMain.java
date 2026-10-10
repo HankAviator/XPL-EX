@@ -122,7 +122,14 @@ public class FragmentMain extends Fragment implements ILoader {
         RecyclerView rvApplication = main.findViewById(R.id.rvApplication);
         //new FastScrollerBuilder(rvApplication).useMd2Style().build();
 
-        rvApplication.setHasFixedSize(false);
+        // The RecyclerView itself never changes size while rows expand/collapse.
+        // Keeping its dimensions fixed avoids a full parent measure during flings.
+        rvApplication.setHasFixedSize(true);
+        rvApplication.setItemAnimator(null);
+        rvApplication.setItemViewCacheSize(12);
+        rvApplication.setDrawingCacheEnabled(false);
+        rvApplication.setVerticalScrollBarEnabled(true);
+        rvApplication.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         LinearLayoutManager llm = new LinearLayoutManager(getActivity()) {
             @Override
             public boolean onRequestChildFocus(@NonNull RecyclerView parent, @NonNull RecyclerView.State state, @NonNull View child, View focused) {
@@ -139,6 +146,7 @@ public class FragmentMain extends Fragment implements ILoader {
 
         llm.setAutoMeasureEnabled(true);
         rvApplication.setLayoutManager(llm);
+        llm.setInitialPrefetchItemCount(6);
         rvAdapter = new AdapterApp(getActivity(), this, warn);
         rvApplication.setAdapter(rvAdapter);
 

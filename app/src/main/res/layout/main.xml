@@ -16,12 +16,12 @@
             android:id="@+id/app_bar_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/colorPrimaryDark">
+            android:background="@color/dashboard_primary_dark">
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/colorPrimaryDark"
+                android:background="@color/dashboard_primary_dark"
                 android:theme="@style/ToolbarThemeWhite"
                 app:navigationIconTint="@android:color/white"
                 app:title="@string/app_name"
@@ -43,6 +43,25 @@
             android:focusable="true"
             android:visibility="gone"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+        <LinearLayout
+            android:id="@+id/bottom_app_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/dashboard_bottom_bar"
+            android:elevation="10dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone">
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/filter_user" style="@style/DashboardBottomImageItem" android:layout_width="64dp" android:layout_height="56dp" android:src="@drawable/ic_filter_user" android:contentDescription="Пользовательские приложения" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/filter_all" style="@style/DashboardBottomImageItem" android:layout_width="64dp" android:layout_height="56dp" android:src="@drawable/ic_filter_all" android:contentDescription="Все приложения" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/filter_hook" style="@style/DashboardBottomImageItem" android:layout_width="64dp" android:layout_height="56dp" android:src="@drawable/ic_filter_hook" android:contentDescription="Приложения с хуками" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/filter_system" style="@style/DashboardBottomImageItem" android:layout_width="64dp" android:layout_height="56dp" android:src="@drawable/ic_filter_system" android:contentDescription="Системные приложения" />
+        </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <LinearLayout
@@ -57,7 +76,7 @@
             android:id="@+id/drawer_header_spacer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:background="@color/colorPrimaryDark" />
+            android:background="@color/dashboard_primary_dark" />
 
         <LinearLayout
             android:id="@+id/drawer_content"

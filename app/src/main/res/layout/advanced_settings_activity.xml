@@ -10,13 +10,13 @@
         android:id="@+id/app_bar_layout_advanced"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorPrimaryDark">
+        android:background="@color/dashboard_primary_dark">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar_advanced"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/colorPrimaryDark"
+            android:background="@color/dashboard_primary_dark"
             android:theme="@style/ToolbarThemeWhite"
             app:navigationIconTint="@android:color/white"
             app:title="@string/menu_advanced_settings"

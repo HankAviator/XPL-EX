@@ -11,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -20,6 +21,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.materialswitch.MaterialSwitch;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -125,14 +127,58 @@ public class AdvancedSettingsActivity extends ActivityBase {
         MaterialSwitch monet = settingsView.findViewById(R.id.switch_monet);
         monet.setChecked(GetSettingExCommand.isMonetEnabled(this));
         updatePrimaryColorPreview();
+        MaterialCardView colorPreview = settingsView.findViewById(R.id.monet_color_preview);
+        colorPreview.setOnClickListener(view -> showColorPicker());
         monet.setOnCheckedChangeListener((button, checked) -> {
             preferences.edit().putBoolean("monet_enabled", checked).apply();
             restartForVisualChange();
         });
     }
 
+    /** Compact color picker that keeps the chosen accent in the existing preference store. */
+    private void showColorPicker() {
+        final String[] swatches = {"#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF5350", "#EC4899"};
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, 0, pad, 0);
+        TextInputEditText input = new TextInputEditText(this);
+        input.setSingleLine(true);
+        input.setHint("#RRGGBB");
+        input.setText(preferences.getString("custom_theme_color", "#8B5CF6"));
+        box.addView(input, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(android.view.Gravity.CENTER);
+        for (String swatch : swatches) {
+            MaterialButton button = new MaterialButton(this);
+            button.setText(" ");
+            button.setMinWidth(0);
+            button.setMinimumWidth(0);
+            button.setPadding(0, 0, 0, 0);
+            button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor(swatch)));
+            button.setOnClickListener(v -> input.setText(swatch));
+            row.addView(button, new LinearLayout.LayoutParams(0, 52, 1));
+        }
+        box.addView(row);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Основной цвет")
+                .setMessage("Выберите готовый цвет или введите HEX-код")
+                .setView(box)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    String value = input.getText() == null ? "" : input.getText().toString().trim();
+                    if (isValidHexColor(value)) {
+                        preferences.edit().putString("custom_theme_color", value).apply();
+                        updatePrimaryColorPreview();
+                        restartForVisualChange();
+                    } else showMessage(R.string.advanced_invalid_color);
+                }).show();
+    }
+
     private void updatePrimaryColorPreview() {
         int color = getColorFromAttribute(com.google.android.material.R.attr.colorPrimary);
+        String custom = preferences.getString("custom_theme_color", "");
+        if (isValidHexColor(custom)) color = Color.parseColor(custom);
         TextView value = settingsView.findViewById(R.id.tv_monet_color_hex);
         value.setText(String.format(Locale.ROOT, "#%06X", color & 0xFFFFFF));
         MaterialCardView preview = settingsView.findViewById(R.id.monet_color_preview);

@@ -154,8 +154,11 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
 
             rvGroup = itemView.findViewById(R.id.rvGroup);
             rvGroup.setHasFixedSize(true);
+            rvGroup.setItemAnimator(null);
+            rvGroup.setItemViewCacheSize(4);
+            rvGroup.setNestedScrollingEnabled(false);
             LinearLayoutManager llm = new LinearLayoutManager(itemView.getContext());
-            llm.setAutoMeasureEnabled(true);
+            llm.setInitialPrefetchItemCount(4);
             rvGroup.setLayoutManager(llm);
             adapter = new AdapterGroup(fragmentLoader);
             rvGroup.setAdapter(adapter);

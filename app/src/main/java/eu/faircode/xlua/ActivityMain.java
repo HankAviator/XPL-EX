@@ -27,6 +27,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.text.Html;
 import android.text.TextUtils;
@@ -38,6 +39,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.MotionEvent;
+import android.view.WindowInsets;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
@@ -60,6 +63,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.recyclerview.widget.RecyclerView;
 
 import eu.faircode.xlua.api.XResult;
 import eu.faircode.xlua.api.hook.XLuaHook;
@@ -113,6 +117,8 @@ public class ActivityMain extends ActivityBase {
     public static final PrefManager manager = PrefManager.create(null, PrefManager.SETTINGS_MAIN);
 
     private final XBackup backup = new XBackup();
+    private final Handler navigationHandler = new Handler();
+    private Runnable hideNavigation;
 
     @Override
     protected boolean useCustomToolbar() {
@@ -131,6 +137,7 @@ public class ActivityMain extends ActivityBase {
         // Set layout
         setContentView(R.layout.main);
         forceEdgeToEdgeUpdate();
+        setupAppFilterBar();
 
         // Prepare action bar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -220,28 +227,6 @@ public class ActivityMain extends ActivityBase {
             }));*/
 
 
-        drawerArray.add(new DrawerItem(this, R.string.menu_readme, new DrawerItem.IListener() {
-            @Override
-            public void onClick(DrawerItem item) {
-                Intent browse = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0bbedCode/XPL-EX"));
-                if (browse.resolveActivity(getPackageManager()) == null)
-                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.msg_no_browser), Snackbar.LENGTH_LONG).show();
-                else
-                    startActivity(browse);
-            }
-        }));
-
-        drawerArray.add(new DrawerItem(this, R.string.menu_faq, new DrawerItem.IListener() {
-            @Override
-            public void onClick(DrawerItem item) {
-                Intent browse = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0bbedCode/XPL-EX/blob/master/FAQ.md"));
-                if (browse.resolveActivity(getPackageManager()) == null)
-                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.msg_no_browser), Snackbar.LENGTH_LONG).show();
-                else
-                    startActivity(browse);
-            }
-        }));
-
         drawerArray.add(new DrawerItem(this, R.string.menu_donate, new DrawerItem.IListener() {
             @Override
             public void onClick(DrawerItem item) {
@@ -259,14 +244,6 @@ public class ActivityMain extends ActivityBase {
                 whatsNew();
             }
         }));
-
-        drawerArray.add(new DrawerItem(this, R.string.menu_language, new DrawerItem.IListener() {
-            @Override
-            public void onClick(DrawerItem item) {
-                showLanguageDialog();
-            }
-        }));
-
 
         drawerArray.add(new DrawerItem(this, R.string.menu_collections, new DrawerItem.IListener() {
             @Override
@@ -344,6 +321,132 @@ public class ActivityMain extends ActivityBase {
         //whatsNew
         initCore();
         ModuleUpdateChecker.check(this);
+    }
+
+    private void setupAppFilterBar() {
+        View bar = findViewById(R.id.bottom_app_filter);
+        bar.setVisibility(View.VISIBLE);
+        int selected = R.id.filter_user;
+        if (fragmentMain != null) {
+            switch (fragmentMain.getShow()) {
+                case icon: selected = R.id.filter_icon; break;
+                case all: selected = R.id.filter_all; break;
+                case hook: selected = R.id.filter_hook; break;
+                case system: selected = R.id.filter_system; break;
+                default: break;
+            }
+        }
+        int[] buttons = {R.id.filter_user, R.id.filter_all, R.id.filter_hook, R.id.filter_system};
+        updateFilterSelection(selected, buttons);
+        for (int buttonId : buttons) {
+            View button = findViewById(buttonId);
+            button.setOnClickListener(v -> {
+            if (fragmentMain == null) return;
+            int id = v.getId();
+            AdapterApp.enumShow value;
+            String pref;
+            if (id == R.id.filter_all) { value = AdapterApp.enumShow.all; pref = "show_all"; }
+            else if (id == R.id.filter_hook) { value = AdapterApp.enumShow.hook; pref = "show_hook"; }
+            else if (id == R.id.filter_system) { value = AdapterApp.enumShow.system; pref = "show_system"; }
+            else { value = AdapterApp.enumShow.user; pref = "show_user"; }
+            manager.putString(PrefManager.SETTING_APPS_SHOW, pref);
+            fragmentMain.setShow(value);
+            fragmentMain.loadData();
+            updateFilterSelection(id, buttons);
+            showNavigation(true);
+            });
+        }
+        // Keep the last list item above the floating navigation bar.
+        View content = findViewById(R.id.content_frame);
+        if (content != null) {
+            content.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+                        || event.getActionMasked() == MotionEvent.ACTION_MOVE
+                        || event.getActionMasked() == MotionEvent.ACTION_UP
+                        || event.getActionMasked() == MotionEvent.ACTION_CANCEL)
+                    showNavigation(event.getActionMasked() != MotionEvent.ACTION_UP
+                            && event.getActionMasked() != MotionEvent.ACTION_CANCEL);
+                return false;
+            });
+            content.post(() -> {
+                RecyclerView list = findRecyclerView(content);
+                if (list != null) {
+                    int bottom = Math.round(76 * getResources().getDisplayMetrics().density);
+                    list.setClipToPadding(false);
+                    list.setPadding(list.getPaddingLeft(), list.getPaddingTop(),
+                            list.getPaddingRight(), bottom);
+                    list.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    @Override public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int state) {
+                        if (state == RecyclerView.SCROLL_STATE_DRAGGING)
+                            showNavigation(true);
+                        else if (state == RecyclerView.SCROLL_STATE_IDLE)
+                            showNavigation(false);
+                    }
+                    });
+                }
+            });
+        }
+        View barView = findViewById(R.id.bottom_app_filter);
+        if (barView != null) {
+            barView.addOnLayoutChangeListener((view, left, top, right, bottom,
+                                                oldLeft, oldTop, oldRight, oldBottom) -> centerNavigation(view));
+            barView.setOnApplyWindowInsetsListener((view, insets) -> {
+                int inset = 0;
+                if (android.os.Build.VERSION.SDK_INT >= 23)
+                    inset = insets.getSystemWindowInsetBottom();
+                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+                lp.bottomMargin = Math.round(12 * getResources().getDisplayMetrics().density) + inset;
+                view.setLayoutParams(lp);
+                centerNavigation(view);
+                return insets;
+            });
+            barView.post(() -> centerNavigation(barView));
+            barView.requestApplyInsets();
+        }
+        showNavigation(false);
+    }
+
+    private RecyclerView findRecyclerView(View view) {
+        if (view instanceof RecyclerView) return (RecyclerView) view;
+        if (!(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            RecyclerView result = findRecyclerView(group.getChildAt(i));
+            if (result != null) return result;
+        }
+        return null;
+    }
+
+    /** Centers the measured capsule against the full overlay parent, independent of OEM CoordinatorLayout gravity. */
+    private void centerNavigation(View bar) {
+        if (!(bar.getParent() instanceof View)) return;
+        View parent = (View) bar.getParent();
+        if (parent.getWidth() <= 0 || bar.getWidth() <= 0) return;
+        bar.setX(Math.round((parent.getWidth() - bar.getWidth()) / 2f));
+    }
+
+    private void showNavigation(boolean interacting) {
+        View bar = findViewById(R.id.bottom_app_filter);
+        if (bar == null) return;
+        if (hideNavigation != null) navigationHandler.removeCallbacks(hideNavigation);
+        bar.setVisibility(View.VISIBLE);
+        bar.animate().cancel();
+        if (bar.getAlpha() < 1f) {
+            bar.setTranslationY(Math.round(24 * getResources().getDisplayMetrics().density));
+            bar.animate().alpha(1f).translationY(0f).setDuration(220).start();
+        } else bar.setAlpha(1f);
+        hideNavigation = () -> bar.animate().alpha(0f)
+                .translationY(Math.round(24 * getResources().getDisplayMetrics().density))
+                .setDuration(200).withEndAction(() -> bar.setVisibility(View.GONE)).start();
+        if (!interacting) navigationHandler.postDelayed(hideNavigation, 3000L);
+    }
+
+    private void updateFilterSelection(int selected, int[] buttons) {
+        for (int id : buttons) {
+            View button = findViewById(id);
+            if (button != null)
+                button.setSelected(id == selected);
+        }
     }
 
     public void handleCodeToSnack(A_CODE code, String extraIfSucceeded) {

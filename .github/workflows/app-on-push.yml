@@ -1,4 +1,4 @@
-name: Build and publish XPL-EX-NEXT v1.6.4
+name: Build and publish XPL-EX-NEXT v1.6.5
 
 on:
   workflow_dispatch:
@@ -7,14 +7,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: xpl-ex-next-v1.6.4-release
+  group: xpl-ex-next-v1.6.5-release
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: XPL-EX-NEXT-v1.6.4
-  RELEASE_TITLE: XPL-EX-NEXT v1.6.4
-  BUILD_APK: XPL-EX-NEXT-1.6.4-release.apk
-  RELEASE_APK: XPL-EX-NEXT-1.6.4.apk
+  RELEASE_TAG: XPL-EX-NEXT-v1.6.5
+  RELEASE_TITLE: XPL-EX-NEXT v1.6.5
+  BUILD_APK: XPL-EX-NEXT-1.6.5-release.apk
+  RELEASE_APK: XPL-EX-NEXT-1.6.5.apk
 
 jobs:
   build-and-release:
@@ -102,8 +102,8 @@ jobs:
           test -n "${signer_sha256}"
           test "${signer_sha256}" = "${expected_sha256}"
           badging=$("${build_tools}/aapt" dump badging "${source_apk}")
-          grep -q "versionCode='169'" <<< "${badging}"
-          grep -q "versionName='1.6.4'" <<< "${badging}"
+          grep -q "versionCode='171'" <<< "${badging}"
+          grep -q "versionName='1.6.5'" <<< "${badging}"
 
           mkdir -p dist
           cp "${source_apk}" "dist/${RELEASE_APK}"
@@ -115,7 +115,7 @@ jobs:
       - name: Prepare release description
         run: |
           set -euo pipefail
-          cp docs/releases/xpl-ex-next-v1.6.4.md "${RUNNER_TEMP}/release-notes.md"
+          cp docs/releases/xpl-ex-next-v1.6.5.md "${RUNNER_TEMP}/release-notes.md"
 
       - name: Write build summary
         run: |
@@ -123,8 +123,8 @@ jobs:
             echo "# ${RELEASE_TITLE}"
             echo
             echo "- Tests: passed"
-            echo "- Version name: 1.6.4"
-            echo "- Version code: 169"
+            echo "- Version name: 1.6.5"
+            echo "- Version code: 171"
             echo "- libxposed API: 101"
             echo "- Bridge protocol: 1.5.5"
             echo "- R8 minification: disabled for Xposed/Lua hook compatibility"
@@ -137,7 +137,7 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: XPL-EX-NEXT-1.6.4
+          name: XPL-EX-NEXT-1.6.5
           path: dist/
           if-no-files-found: error
           retention-days: 30

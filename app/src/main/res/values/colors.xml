@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#AA3939</color>
-    <color name="colorPrimaryDark">#D94C4C</color>
-    <color name="colorAccent">#5FA8D3 </color>
-    <color name="colorUnsavedSetting">#D94C4C</color>
-    <color name="colorActiveHook">#2EAD59</color>
+    <color name="colorPrimary">@color/dashboard_primary</color>
+    <color name="colorPrimaryDark">@color/dashboard_primary_dark</color>
+    <color name="colorAccent">@color/dashboard_primary_bright</color>
+    <color name="colorUnsavedSetting">@color/dashboard_error</color>
+    <color name="colorActiveHook">@color/dashboard_success</color>
 
     <!-- 1.5.8 interface palette. These colors keep the original red XPL-EX
          identity while exposing the Material surface roles used by the new UI. -->
-    <color name="app_legacy_primary_red_light">#CC5555</color>
-    <color name="app_legacy_primary_red_dark">#E55555</color>
-    <color name="app_legacy_primary_red_container_light">#FFEBEB</color>
-    <color name="app_legacy_primary_red_container_dark">#4A2D2D</color>
-    <color name="app_legacy_light_surface_container">#F5F5F5</color>
-    <color name="app_legacy_light_surface_container_high">#F0F0F0</color>
+    <color name="app_legacy_primary_red_light">@color/dashboard_primary</color>
+    <color name="app_legacy_primary_red_dark">@color/dashboard_primary_dark</color>
+    <color name="app_legacy_primary_red_container_light">#EDE7FF</color>
+    <color name="app_legacy_primary_red_container_dark">#302451</color>
+    <color name="app_legacy_light_surface_container">@color/dashboard_light_card</color>
+    <color name="app_legacy_light_surface_container_high">#F1F0F8</color>
     <color name="app_legacy_light_surface_container_low">#FAFAFA</color>
     <color name="app_legacy_light_outline_variant">#D0D0D0</color>
-    <color name="app_legacy_dark_surface_container">#2D2D2D</color>
-    <color name="app_legacy_dark_surface_container_high">#353535</color>
-    <color name="app_legacy_dark_surface_container_low">#252525</color>
-    <color name="app_legacy_dark_outline_variant">#555555</color>
+    <color name="app_legacy_dark_surface_container">@color/dashboard_card</color>
+    <color name="app_legacy_dark_surface_container_high">@color/dashboard_pressed</color>
+    <color name="app_legacy_dark_surface_container_low">@color/dashboard_surface</color>
+    <color name="app_legacy_dark_outline_variant">@color/dashboard_border</color>
     <color name="app_legacy_ripple_light">#FFCDD2</color>
     <color name="app_legacy_ripple_dark">#FF8A80</color>
 

@@ -142,7 +142,7 @@
                 app:layout_constraintStart_toStartOf="@+id/btSettingsToConfigs"
                 app:layout_constraintTop_toBottomOf="@+id/btSettingsToConfigs" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <eu.faircode.xlua.ui.dashboard.DashboardToggle
                 android:id="@+id/cbUseDefaultSettings"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
