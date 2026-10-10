@@ -111,9 +111,8 @@ public class IntentQueryData {
             }
 
             if(!hasResult()) {
-                Log.e(TAG, Str.fm("Authority [%s] Query Request lacks a Result! Skipping:: this[%s]",
-                        authorityOrPath,
-                        toString(false)));
+                // A provider may legitimately return null. Leave that result unchanged;
+                // do not log application-specific query arguments as an error.
                 return false;
             }
 

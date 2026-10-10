@@ -363,20 +363,22 @@ public class SettingExFragment
 
                 break;
             case R.id.flSettingsButtonFour:
+                final UserClientAppContext saveContext = getUserContext();
+                final Map<SettingHolder, SettingPacket> savePackets = SettingFragmentUtils.getSettingPackets(
+                        getLiveData(), getSharedRegistry(), saveContext, ActionFlag.PUSH);
+                final boolean stopAfterSave = saveContext.isKill();
+                for (SettingPacket packet : savePackets.values())
+                    packet.setActionPacket(ActionPacket.create(ActionFlag.PUSH, false));
                 new Thread(() -> {
                     List<String> succeeded = new ArrayList<>();
                     List<String> failed = new ArrayList<>();
-                    Map<SettingHolder, SettingPacket> data = SettingFragmentUtils.getSettingPackets(
-                            getLiveData(),
-                            getSharedRegistry(),
-                            getUserContext(),
-                            ActionFlag.PUSH);
-
-                    for (Map.Entry<SettingHolder, SettingPacket> entry : data.entrySet()) {
+                    for (Map.Entry<SettingHolder, SettingPacket> entry : savePackets.entrySet()) {
                         SettingHolder holder = entry.getKey();
+                        final String savedValue = entry.getValue().value;
                         if (A_CODE.isSuccessful(PutSettingExCommand.call(context, entry.getValue()))) {
                             new Handler(Looper.getMainLooper()).post(() -> {
-                                holder.setValue(holder.getNewValue(), true);
+                                // Keep edits made while this snapshot was being saved.
+                                holder.setValue(savedValue, false);
                                 holder.setNameLabelColor(context);
                                 holder.notifyUpdate(sharedRegistry.notifier);
                             });
@@ -389,8 +391,14 @@ public class SettingExFragment
 
                     List<String> activatedHookIds = SettingHookAutoActivator.activate(
                             context,
-                            getUserContext(),
+                            saveContext,
                             succeeded);
+
+                    if (stopAfterSave && !saveContext.isGlobal() && !succeeded.isEmpty()) {
+                        A_CODE stopResult = ForceStopAppCommand.stop(context, saveContext.appUid, saveContext.appPackageName);
+                        if (!A_CODE.isSuccessful(stopResult))
+                            Log.e(TAG, "Settings saved, but final force-stop failed: " + stopResult);
+                    }
 
                     new Handler(Looper.getMainLooper()).post(() -> {
                         if(ListUtil.isValid(activatedHookIds))

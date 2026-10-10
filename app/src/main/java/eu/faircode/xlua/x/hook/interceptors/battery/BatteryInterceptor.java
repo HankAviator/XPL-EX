@@ -87,12 +87,12 @@ public class BatteryInterceptor {
 
             switch (flag) {
                 case BatteryManager.BATTERY_PROPERTY_CAPACITY:
-                    int modifiedCapacity = param.getSettingInt(RandomizersCache.SETTING_BATTERY_PERCENT, -1);
-                    if(modifiedCapacity > -1 && modifiedCapacity < 101 && ((long)modifiedCapacity != longRes)) {
+                    Integer modifiedCapacity = param.getSettingInt(RandomizersCache.SETTING_BATTERY_PERCENT, -1);
+                    if(modifiedCapacity != null && modifiedCapacity > -1 && modifiedCapacity < 101 && ((long)modifiedCapacity != longRes)) {
                         param.setLogOld(String.valueOf(longRes));
                         param.setLogNew(String.valueOf(modifiedCapacity));
                         param.setLogExtra("Capacity");
-                        param.setResult(isLong ? (long)modifiedCapacity : modifiedCapacity);
+                        param.setResult(BatteryValues.result(modifiedCapacity, isLong));
                         return true;
                     }
                     break;
@@ -102,7 +102,7 @@ public class BatteryInterceptor {
                         param.setLogOld(String.valueOf(longRes));
                         param.setLogNew(String.valueOf(chargeCounter));
                         param.setLogExtra("Charge counter (uAh)");
-                        param.setResult(isLong ? chargeCounter : (int)Math.min(Integer.MAX_VALUE, chargeCounter));
+                        param.setResult(BatteryValues.result(chargeCounter, isLong));
                         return true;
                     }
                     break;
@@ -112,12 +112,13 @@ public class BatteryInterceptor {
                         param.setLogOld(String.valueOf(longRes));
                         param.setLogNew(String.valueOf(energyCounter));
                         param.setLogExtra("Energy counter (nWh)");
-                        param.setResult(isLong ? energyCounter : (int)Math.min(Integer.MAX_VALUE, energyCounter));
+                        param.setResult(BatteryValues.result(energyCounter, isLong));
                         return true;
                     }
                     break;
                 case BatteryManager.BATTERY_PROPERTY_STATUS:
-                    int modifiedStatus = param.getSettingInt(RandomizersCache.SETTING_BATTERY_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
+                    Integer configuredStatus = param.getSettingInt(RandomizersCache.SETTING_BATTERY_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
+                    int modifiedStatus = configuredStatus == null ? BatteryManager.BATTERY_STATUS_UNKNOWN : configuredStatus;
                     if(modifiedStatus == BatteryManager.BATTERY_STATUS_UNKNOWN) {
                         String isC = param.getSetting(RandomizersCache.SETTING_BATTERY_IS_CHARGING);
                         if(!Str.isEmpty(isC)) {
@@ -127,11 +128,11 @@ public class BatteryInterceptor {
                         }
                     }
 
-                    if(isValidStatus(modifiedStatus) && (long)modifiedStatus != longRes) {
+                    if((configuredStatus != null || !Str.isEmpty(param.getSetting(RandomizersCache.SETTING_BATTERY_IS_CHARGING))) && isValidStatus(modifiedStatus) && (long)modifiedStatus != longRes) {
                         param.setLogOld(String.valueOf(longRes));
                         param.setLogNew(String.valueOf(modifiedStatus));
                         param.setLogExtra("Status");
-                        param.setResult(isLong ? (long)modifiedStatus : modifiedStatus);
+                        param.setResult(BatteryValues.result(modifiedStatus, isLong));
                         return true;
                     }
                     break;
@@ -172,8 +173,9 @@ public class BatteryInterceptor {
 
                 //RandomizersCache.SETTING_BATTERY_IS_CHARGING
 
-                int fakePercentage = Math.max(Math.min(param.getSettingInt(RandomizersCache.SETTING_BATTERY_PERCENT, 10), 100), 0);
-                if (scale > 0) {
+                Integer configuredPercentage = param.getSettingInt(RandomizersCache.SETTING_BATTERY_PERCENT, 10);
+                int fakePercentage = configuredPercentage == null ? 0 : clamp(configuredPercentage, 0, 100);
+                if (scale > 0 && configuredPercentage != null) {
                     int fakeLevel = (int) Math.floor((fakePercentage / 100.0) * scale);
                     bundle.putInt(BatteryManager.EXTRA_LEVEL, fakeLevel);
                     // Handle the battery low flag based on the fake percentage
@@ -197,25 +199,28 @@ public class BatteryInterceptor {
                     }
                 }
 
-                int fakeVoltage = clamp(param.getSettingInt(
+                Integer configuredVoltage = param.getSettingInt(
                         RandomizersCache.SETTING_BATTERY_VOLTAGE_MV,
-                        voltageForPercentage(fakePercentage)), 3300, 4500);
-                if(bundle.containsKey(BatteryManager.EXTRA_VOLTAGE)) {
+                        voltageForPercentage(fakePercentage));
+                if(configuredVoltage != null && bundle.containsKey(BatteryManager.EXTRA_VOLTAGE)) {
+                    int fakeVoltage = clamp(configuredVoltage, 3300, 4500);
                     original.append("[VOLTAGE(mV)][" + bundle.getInt(BatteryManager.EXTRA_VOLTAGE) + "]");
                     modified.append("[VOLTAGE(mV)][" + fakeVoltage + "]");
                     bundle.putInt(BatteryManager.EXTRA_VOLTAGE, fakeVoltage);
                 }
 
-                int fakeTemperature = clamp(param.getSettingInt(
-                        RandomizersCache.SETTING_BATTERY_TEMPERATURE_TENTHS_C, 270), 150, 450);
-                if(bundle.containsKey(BatteryManager.EXTRA_TEMPERATURE)) {
+                Integer configuredTemperature = param.getSettingInt(
+                        RandomizersCache.SETTING_BATTERY_TEMPERATURE_TENTHS_C, 270);
+                if(configuredTemperature != null && bundle.containsKey(BatteryManager.EXTRA_TEMPERATURE)) {
+                    int fakeTemperature = clamp(configuredTemperature, 150, 450);
                     original.append("[TEMPERATURE][" + bundle.getInt(BatteryManager.EXTRA_TEMPERATURE) + "]");
                     modified.append("[TEMPERATURE][" + (fakeTemperature / 10.0f) + "°C]");
                     bundle.putInt(BatteryManager.EXTRA_TEMPERATURE, fakeTemperature);
                 }
 
-                if(bundle.containsKey(EXTRA_CHARGE_COUNTER)) {
-                    int chargeCounter = (int)Math.min(Integer.MAX_VALUE, getChargeCounterMicroAh(param));
+                long configuredChargeCounter = getChargeCounterMicroAh(param);
+                if(configuredChargeCounter >= 0 && bundle.containsKey(EXTRA_CHARGE_COUNTER)) {
+                    int chargeCounter = (int)Math.min(Integer.MAX_VALUE, configuredChargeCounter);
                     original.append("[CHARGE_COUNTER(μAh)][" + bundle.getInt(EXTRA_CHARGE_COUNTER) + "]");
                     modified.append("[CHARGE_COUNTER(μAh)][" + chargeCounter + "]");
                     bundle.putInt(EXTRA_CHARGE_COUNTER, chargeCounter);
@@ -227,7 +232,8 @@ public class BatteryInterceptor {
                     isCharging = originalStatus == BatteryManager.BATTERY_STATUS_CHARGING;
 
                     if(originalStatus > -1 || param.isForceSetting(RandomizersCache.SETTING_BATTERY_STATUS)) {
-                        int modifiedStatus = param.getSettingInt(RandomizersCache.SETTING_BATTERY_STATUS, originalStatus);
+                        Integer configuredStatus = param.getSettingInt(RandomizersCache.SETTING_BATTERY_STATUS, originalStatus);
+                        int modifiedStatus = configuredStatus == null ? originalStatus : configuredStatus;
                         if(modifiedStatus != BatteryManager.BATTERY_STATUS_CHARGING && modifiedStatus != BatteryManager.BATTERY_STATUS_FULL && isFull)
                             modifiedStatus = BatteryManager.BATTERY_STATUS_FULL;
 
@@ -343,19 +349,19 @@ public class BatteryInterceptor {
     }
 
     static long getChargeCounterMicroAh(XParam param) {
-        int capacityMah = clamp(param.getSettingInt(
-                RandomizersCache.SETTING_BATTERY_CAPACITY_MAH, 5000), 3000, 10000);
-        int percentage = clamp(param.getSettingInt(
-                RandomizersCache.SETTING_BATTERY_PERCENT, 68), 0, 100);
-        return (long)capacityMah * 1000L * percentage / 100L;
+        return BatteryValues.chargeCounter(param.getSettingInt(
+                RandomizersCache.SETTING_BATTERY_CAPACITY_MAH, 5000), param.getSettingInt(
+                RandomizersCache.SETTING_BATTERY_PERCENT, 68));
     }
 
     static long getEnergyCounterNanoWh(XParam param) {
-        int voltageMv = clamp(param.getSettingInt(
+        Integer percentage = param.getSettingInt(RandomizersCache.SETTING_BATTERY_PERCENT, 68);
+        if (percentage == null) return -1;
+        Integer voltageMv = param.getSettingInt(
                 RandomizersCache.SETTING_BATTERY_VOLTAGE_MV,
-                voltageForPercentage(param.getSettingInt(RandomizersCache.SETTING_BATTERY_PERCENT, 68))),
-                3300, 4500);
-        return getChargeCounterMicroAh(param) * voltageMv;
+                voltageForPercentage(percentage));
+        long charge = getChargeCounterMicroAh(param);
+        return voltageMv == null || charge < 0 ? -1 : charge * clamp(voltageMv, 3300, 4500);
     }
 
     static int voltageForPercentage(int percentage) {

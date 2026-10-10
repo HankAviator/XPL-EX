@@ -50,6 +50,9 @@ public class XSecurity {
     public static String getProFingerPrint(Context context) {
         try {
             return XUtil.getSha1FingerprintString(context, XCommandBridgeStatic.PRO_PACKAGE);
+        } catch (PackageManager.NameNotFoundException absent) {
+            // The companion is optional, not a failed module initialization.
+            return "0";
         }catch (Throwable e) {
             Log.e(TAG, "Failed to get Pro Sha1 Finger Print , Maybe the package does not exist / not installed ? ... " + e);
             return "0";

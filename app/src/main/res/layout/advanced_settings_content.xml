@@ -57,9 +57,13 @@
                     android:layout_width="0dp"
                     android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:text="@string/advanced_theme_auto"
-                    app:icon="@drawable/baseline_brightness_auto_24"
-                    app:iconGravity="textTop"
+                    android:contentDescription="@string/advanced_theme_auto"
+                    android:gravity="center"
+                    android:padding="0dp"
+                    app:icon="@drawable/ic_theme_auto"
+                    app:iconSize="28dp"
+                    app:iconPadding="0dp"
+                    app:iconGravity="textStart"
                     app:iconTint="?attr/colorOnSurface" />
 
                 <com.google.android.material.button.MaterialButton
@@ -68,9 +72,13 @@
                     android:layout_width="0dp"
                     android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:text="@string/advanced_theme_light"
-                    app:icon="@drawable/baseline_light_mode_24"
-                    app:iconGravity="textTop"
+                    android:contentDescription="@string/advanced_theme_light"
+                    android:gravity="center"
+                    android:padding="0dp"
+                    app:icon="@drawable/ic_theme_light"
+                    app:iconSize="28dp"
+                    app:iconPadding="0dp"
+                    app:iconGravity="textStart"
                     app:iconTint="?attr/colorOnSurface" />
 
                 <com.google.android.material.button.MaterialButton
@@ -79,9 +87,13 @@
                     android:layout_width="0dp"
                     android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:text="@string/advanced_theme_dark"
-                    app:icon="@drawable/baseline_dark_mode_24"
-                    app:iconGravity="textTop"
+                    android:contentDescription="@string/advanced_theme_dark"
+                    android:gravity="center"
+                    android:padding="0dp"
+                    app:icon="@drawable/ic_theme_dark"
+                    app:iconSize="28dp"
+                    app:iconPadding="0dp"
+                    app:iconGravity="textStart"
                     app:iconTint="?attr/colorOnSurface" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 

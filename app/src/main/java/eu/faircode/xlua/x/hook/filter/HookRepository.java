@@ -53,8 +53,10 @@ public class HookRepository {
             if(settings == null)
                 throw new Exception("Settings Map is Null...");
 
-            if(!ListUtil.isValid(assignedHooks))
-                throw new Exception("No Hooks are Assigned returning...");
+            if(!ListUtil.isValid(assignedHooks)) {
+                Log.i(TAG, "No assigned hooks; nothing to initialize for this process");
+                return this;
+            }
 
             //[1] Get (ALL) the Hooks (we want to find the Filter Definitions)
             Collection<XHook> allHooks = GetHooksCommand.getHooks(context, true, true);

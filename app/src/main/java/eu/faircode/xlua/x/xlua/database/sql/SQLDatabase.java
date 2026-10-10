@@ -60,9 +60,9 @@ public class SQLDatabase {
 
     public SQLDatabase(String databaseFileName, Context context, boolean open) {
         FileEx baseDirectory = DatabasePathUtil.getDatabaseDirectory(context);
-        DatabaseUtils.ensureValidFile(baseDirectory);
         this.name = DatabaseUtils.ensureValidDatabaseFileName(databaseFileName);
         this.file = FileEx.createFromFile(FileApi.buildPath(FileApi.buildPath(Objects.requireNonNull(baseDirectory).getAbsolutePath()), this.name));
+        DatabaseUtils.ensureValidFile(this.file);
         boolean isOpen = isOpen(open);
         DatabasePathUtil.logI(
                 Str.fm("Database Folder=%s Database Name=%s Parent Directory=%s Open Flag=%s Is Open=%s",

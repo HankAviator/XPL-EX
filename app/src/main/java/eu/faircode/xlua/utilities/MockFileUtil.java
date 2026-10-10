@@ -31,11 +31,13 @@ public class MockFileUtil {
     }
 
     public static FileDescriptor generateFakeFileDescriptor(MockCpu map) {
+        if (map == null || map.getContents() == null || map.getContents().trim().isEmpty()) return null;
         if(BuildConfig.DEBUG) Log.i(TAG, "MOCK FileDescriptor For: " + map);
         return FileUtil.generateFakeFileDescriptor(map.getContents());
     }
 
     public static File generateFakeFile(MockCpu map) {
+        if (map == null || map.getContents() == null || map.getContents().trim().isEmpty()) return null;
         if(BuildConfig.DEBUG) Log.i(TAG, "MOCK File For: " + map);
         return FileUtil.generateTempFakeFile(map.getContents());
     }
