@@ -22,7 +22,7 @@ public class DashboardSelector extends AppCompatSpinner {
         super(context, attrs, androidx.appcompat.R.attr.spinnerStyle, 0);
         setBackgroundResource(R.drawable.dashboard_card_background);
         int spacing = getResources().getDimensionPixelSize(R.dimen.dashboard_spacing);
-        setPaddingRelative(spacing, spacing / 2, spacing, spacing / 2);
+        setPaddingRelative(spacing, 0, spacing, 0);
         setMinimumHeight(getResources().getDimensionPixelSize(R.dimen.dashboard_touch_target));
         setDropDownVerticalOffset(0);
     }
@@ -30,6 +30,7 @@ public class DashboardSelector extends AppCompatSpinner {
     /** Use a compact anchored popup instead of Spinner's full-screen system dialog. */
     @Override
     public boolean performClick() {
+        dismissPopup();
         if (getAdapter() == null || getAdapter().getCount() == 0)
             return true;
 
@@ -37,13 +38,23 @@ public class DashboardSelector extends AppCompatSpinner {
         list.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
         list.setDivider(null);
         list.setDividerHeight(0);
-        list.setPadding(8, 8, 8, 8);
+        int padding = Math.round(8 * getResources().getDisplayMetrics().density);
+        list.setPadding(padding, padding, padding, padding);
         list.setClipToPadding(false);
         list.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         SpinnerAdapter adapter = getAdapter();
         if (!(adapter instanceof ListAdapter))
             return true;
-        list.setAdapter((ListAdapter) adapter);
+        list.setAdapter(new android.widget.BaseAdapter() {
+            public int getCount() { return adapter.getCount(); }
+            public Object getItem(int position) { return adapter.getItem(position); }
+            public long getItemId(int position) { return adapter.getItemId(position); }
+            public View getView(int position, View recycled, android.view.ViewGroup parent) {
+                View row = adapter.getDropDownView(position, recycled, parent);
+                row.setActivated(position == getSelectedItemPosition());
+                return row;
+            }
+        });
         int selected = getSelectedItemPosition();
         if (selected >= 0)
             list.setItemChecked(selected, true);
@@ -66,7 +77,16 @@ public class DashboardSelector extends AppCompatSpinner {
                 popup.dismiss();
         });
         popup.setOnDismissListener(() -> popup = null);
-        popup.showAsDropDown(this, 0, -getHeight());
+        popup.showAsDropDown(this, 0, padding);
         return true;
+    }
+
+    public void dismissPopup() {
+        if (popup != null) popup.dismiss();
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        dismissPopup();
+        super.onDetachedFromWindow();
     }
 }

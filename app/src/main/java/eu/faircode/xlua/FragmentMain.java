@@ -83,7 +83,11 @@ public class FragmentMain extends Fragment implements ILoader {
     private Spinner spGroup;
     private ArrayAdapter<XUiGroup> spAdapter;
     private Button btnRestrict;
-    private TextView tvRestrict;
+    private View filterPanel;
+    private boolean panelExpanded = true;
+    private boolean dataLoaded;
+    private String selectedGroup;
+    private boolean replacingGroups;
     private Group grpApplication;
     private SwipeRefreshLayout swipeRefresh;
     private AdapterApp rvAdapter;
@@ -102,7 +106,8 @@ public class FragmentMain extends Fragment implements ILoader {
 
         pbApplication = main.findViewById(R.id.pbApplication);
         btnRestrict = main.findViewById(R.id.btnRestrict);
-        tvRestrict = main.findViewById(R.id.tvRestrict);
+        filterPanel = main.findViewById(R.id.filter_panel);
+        filterPanel.setVisibility(View.GONE);
         grpApplication = main.findViewById(R.id.grpApplication);
 
         int colorAccent = XUtil.resolveColor(requireContext(), R.attr.colorAccent);
@@ -150,7 +155,7 @@ public class FragmentMain extends Fragment implements ILoader {
         rvAdapter = new AdapterApp(getActivity(), this, warn);
         rvApplication.setAdapter(rvAdapter);
 
-        spAdapter = new ArrayAdapter<>(requireContext(), R.layout.dashboard_popup_item);
+        spAdapter = new ArrayAdapter<>(requireContext(), R.layout.filter_selected_item);
         spAdapter.setDropDownViewResource(R.layout.dashboard_popup_item);
 
         spGroup = main.findViewById(R.id.spGroup);
@@ -168,19 +173,21 @@ public class FragmentMain extends Fragment implements ILoader {
             private void updateSelection() {
                 XUiGroup selected = (XUiGroup) spGroup.getSelectedItem();
                 String group = (selected == null ? null : selected.name);
+                if (replacingGroups) return;
+                selectedGroup = group;
                 if (group == null ? spGroup.getTag() != null : !group.equals(spGroup.getTag())) {
                     spGroup.setTag(group);
                     rvAdapter.setGroup(group);
                     if(DebugUtil.isDebug()) Log.i(TAG, "Select group=" + group);
                 }
 
-                tvRestrict.setVisibility(group == null ? View.VISIBLE : View.GONE);
-                btnRestrict.setVisibility(group == null ? View.INVISIBLE : View.VISIBLE);
+                updateRestrictionVisibility();
             }
         });
 
         btnRestrict.setOnClickListener(view -> {
             XUiGroup selected = (XUiGroup) spGroup.getSelectedItem();
+            if (selected == null || selected.name == null) return;
             XUtil.areYouSure(
                     (ActivityBase) getActivity(),
                     getString(R.string.msg_restrict_sure, selected.title),
@@ -225,56 +232,46 @@ public class FragmentMain extends Fragment implements ILoader {
         if (rvAdapter != null) rvAdapter.getFilter().filter(query);
     }
 
-    /** Toggle the overlay filter row without changing the selected group or list data. */
+    /** Animate one stable overlay; cancelled animations cannot hide a newly opened panel. */
     public void setFilterPanelVisible(boolean visible, boolean animate) {
-        View selector = spGroup;
-        View restrictButton = btnRestrict;
-        View restrictLabel = tvRestrict;
-        if (selector == null || restrictButton == null || restrictLabel == null)
-            return;
-
-        if (!visible) {
-            View[] controls = {selector, restrictButton, restrictLabel};
-            for (View control : controls)
-                control.animate().cancel();
-            if (!animate) {
-                for (View control : controls) control.setVisibility(View.GONE);
-                return;
-            }
-            selector.setVisibility(View.VISIBLE);
-            selector.animate().alpha(0f).translationY(-10f).setDuration(160).start();
-            restrictButton.animate().alpha(0f).translationY(-10f).setDuration(160).start();
-            restrictLabel.animate().alpha(0f).translationY(-10f).setDuration(160)
-                    .withEndAction(() -> {
-                        for (View control : controls) {
-                            control.setVisibility(View.GONE);
-                            control.setAlpha(1f);
-                            control.setTranslationY(0f);
-                        }
-                    }).start();
-            return;
-        }
-
-        selector.setVisibility(View.VISIBLE);
-        updateRestrictionVisibility();
-        View[] controls = {selector, restrictButton, restrictLabel};
-        for (View control : controls) {
-            if (control.getVisibility() == View.VISIBLE) {
-                control.setAlpha(animate ? 0f : 1f);
-                control.setTranslationY(animate ? -10f : 0f);
-                if (animate)
-                    control.animate().alpha(1f).translationY(0f).setDuration(180).start();
-            }
+        panelExpanded = visible;
+        if (filterPanel == null) return;
+        filterPanel.animate().withEndAction(null);
+        filterPanel.animate().cancel();
+        ((eu.faircode.xlua.ui.dashboard.DashboardSelector) spGroup).dismissPopup();
+        filterPanel.setTranslationY(0f);
+        if (!animate || !dataLoaded) {
+            filterPanel.setAlpha(1f);
+            filterPanel.setVisibility(visible && dataLoaded ? View.VISIBLE : View.GONE);
+        } else if (visible) {
+            filterPanel.setVisibility(View.VISIBLE);
+            filterPanel.animate().alpha(1f).setDuration(180).start();
+        } else {
+            filterPanel.animate().alpha(0f).setDuration(160).withEndAction(() -> {
+                if (!panelExpanded && filterPanel != null) {
+                    filterPanel.setVisibility(View.GONE);
+                    filterPanel.setAlpha(1f);
+                }
+            }).start();
         }
     }
 
     private void updateRestrictionVisibility() {
         XUiGroup selected = spGroup == null ? null : (XUiGroup) spGroup.getSelectedItem();
-        boolean hasGroup = selected != null && selected.name != null;
-        if (tvRestrict != null)
-            tvRestrict.setVisibility(hasGroup ? View.GONE : View.VISIBLE);
-        if (btnRestrict != null)
-            btnRestrict.setVisibility(hasGroup ? View.VISIBLE : View.GONE);
+        btnRestrict.setEnabled(selected != null && selected.name != null);
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (filterPanel != null) {
+            filterPanel.animate().withEndAction(null);
+            filterPanel.animate().cancel();
+        }
+        if (spGroup != null)
+            ((eu.faircode.xlua.ui.dashboard.DashboardSelector) spGroup).dismissPopup();
+        filterPanel = null;
+        dataLoaded = false;
+        super.onDestroyView();
     }
 
     @Override
@@ -303,8 +300,19 @@ public class FragmentMain extends Fragment implements ILoader {
         public void onLoadFinished(@NonNull Loader<DataHolder> loader, DataHolder data) {
             if (data.exception == null) {
                 UiUtil.initTheme(getActivity(), data.theme);
+                replacingGroups = true;
+                spAdapter.setNotifyOnChange(false);
                 spAdapter.clear();
                 spAdapter.addAll(data.groups);
+                int selection = 0;
+                for (int i = 0; i < data.groups.size(); i++)
+                    if (Objects.equals(selectedGroup, data.groups.get(i).name)) selection = i;
+                spAdapter.notifyDataSetChanged();
+                spGroup.setSelection(selection);
+                selectedGroup = data.groups.get(selection).name;
+                spGroup.setTag(selectedGroup);
+                rvAdapter.setGroup(selectedGroup);
+                replacingGroups = false;
 
                 show = data.show;
                 rvAdapter.setShow(data.show);
@@ -320,26 +328,16 @@ public class FragmentMain extends Fragment implements ILoader {
                 swipeRefresh.setRefreshing(false);
                 pbApplication.setVisibility(View.GONE);
                 grpApplication.setVisibility(View.VISIBLE);
+                dataLoaded = true;
+                setFilterPanelVisible(panelExpanded, false);
 
                 //This will determine if its all or a actual name
                 //If a actual group is selected then show the restrict button
                 XUiGroup selected = (XUiGroup) spGroup.getSelectedItem();
                 String group = (selected == null ? null : selected.name);
-                tvRestrict.setVisibility(group == null ? View.VISIBLE : View.GONE);
-                btnRestrict.setVisibility(group == null ? View.INVISIBLE : View.VISIBLE);
+                updateRestrictionVisibility();
 
-                /*rvAdapter.setEx(getContext(), data.collection, data.hooks, data.apps, () -> {
-                    swipeRefresh.setRefreshing(false);
-                    pbApplication.setVisibility(View.GONE);
-                    grpApplication.setVisibility(View.VISIBLE);
 
-                    //This will determine if its all or a actual name
-                    //If a actual group is selected then show the restrict button
-                    XUiGroup selected = (XUiGroup) spGroup.getSelectedItem();
-                    String group = (selected == null ? null : selected.name);
-                    tvRestrict.setVisibility(group == null ? View.VISIBLE : View.GONE);
-                    btnRestrict.setVisibility(group == null ? View.INVISIBLE : View.VISIBLE);
-                });*/
             } else {
                 Log.e(TAG, Log.getStackTraceString(data.exception));
                 Snackbar.make(Objects.requireNonNull(getView()), data.exception.toString(), Snackbar.LENGTH_LONG).show();

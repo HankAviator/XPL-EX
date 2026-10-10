@@ -96,6 +96,9 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
     private static final String TAG = LibUtil.generateTag(AdapterApp.class);
 
     private int iconSize;
+    private Filter appFilter;
+    private android.content.pm.PackageManager packageManager;
+    private final Map<String, String[]> permissionCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     public enum enumShow {none, user, icon, all, hook, system }
 
@@ -505,6 +508,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
         this.warn = warn;
     }
     AdapterApp(Context context) {
+        packageManager = context.getPackageManager();
         TypedValue typedValue = new TypedValue();
         context.getTheme().resolveAttribute(android.R.attr.listPreferredItemHeight, typedValue, true);
         int height = TypedValue.complexToDimensionPixelSize(typedValue.data, context.getResources().getDisplayMetrics());
@@ -519,6 +523,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
     //}
 
     void set(List<String> collection, List<XHook> hooks, List<AppXpPacket> apps) {
+        permissionCache.clear();
         this.dataChanged = (this.hooks.size() != hooks.size());
         for (int i = 0; i < this.hooks.size() && !this.dataChanged; i++) {
             XHook hook = this.hooks.get(i);
@@ -722,7 +727,8 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
 
     @Override
     public Filter getFilter() {
-        return new Filter() {
+        if (appFilter != null) return appFilter;
+        return appFilter = new Filter() {
             private boolean expanded1 = false;
 
             @Override
@@ -749,6 +755,29 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
                     }
 
                 List<AppXpPacket> results = new ArrayList<>();
+
+                // Compose the selected restriction with the existing app/search filters.
+                // Package queries run on Filter's worker thread, never while binding rows.
+                final String selectedGroup = group;
+                if (RestrictionPermissionFilter.permissions(selectedGroup).length > 0) {
+                    java.util.Iterator<AppXpPacket> iterator = visible.iterator();
+                    while (iterator.hasNext()) {
+                        AppXpPacket app = iterator.next();
+                        String[] requested = permissionCache.get(app.packageName);
+                        if (requested == null) {
+                            try {
+                                requested = packageManager.getPackageInfo(app.packageName,
+                                        android.content.pm.PackageManager.GET_PERMISSIONS).requestedPermissions;
+                            } catch (android.content.pm.PackageManager.NameNotFoundException | SecurityException ignored) {
+                                // Cannot determine permissions for this package/profile; do not guess.
+                                continue;
+                            }
+                            if (requested == null) requested = new String[0];
+                            permissionCache.put(app.packageName, requested);
+                        }
+                        if (!RestrictionPermissionFilter.matches(selectedGroup, requested)) iterator.remove();
+                    }
+                }
 
                 if (TextUtils.isEmpty(query))
                     results.addAll(visible);
