@@ -150,9 +150,14 @@ public class ActivityMain extends ActivityBase {
         // Show fragment
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentMain = new FragmentMain();
-        fragmentTransaction.replace(R.id.content_frame, fragmentMain);
-        fragmentTransaction.commit();
+        androidx.fragment.app.Fragment restored = fragmentManager.findFragmentById(R.id.content_frame);
+        if (restored instanceof FragmentMain) {
+            fragmentMain = (FragmentMain) restored;
+        } else {
+            fragmentMain = new FragmentMain();
+            fragmentTransaction.replace(R.id.content_frame, fragmentMain);
+            fragmentTransaction.commit();
+        }
 
         // Get drawer layout
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -328,9 +333,10 @@ public class ActivityMain extends ActivityBase {
         View bar = findViewById(R.id.bottom_app_filter);
         bar.setVisibility(View.VISIBLE);
         int selected = R.id.filter_user;
-        if (fragmentMain != null) {
-            switch (fragmentMain.getShow()) {
-                case icon: selected = R.id.filter_icon; break;
+        manager.ensureIsOpen(this, PrefManager.SETTINGS_MAIN);
+        {
+            switch (PrefManager.settingToShow(manager.getString(PrefManager.SETTING_APPS_SHOW, "show_user", true))) {
+                case icon: selected = R.id.filter_user; break;
                 case all: selected = R.id.filter_all; break;
                 case hook: selected = R.id.filter_hook; break;
                 case system: selected = R.id.filter_system; break;
@@ -431,7 +437,7 @@ public class ActivityMain extends ActivityBase {
         if (bar == null) return;
         if (hideNavigation != null) navigationHandler.removeCallbacks(hideNavigation);
         bar.setVisibility(View.VISIBLE);
-        bar.animate().cancel();
+        bar.animate().withEndAction(null).cancel();
         if (bar.getAlpha() < 1f) {
             bar.setTranslationY(Math.round(24 * getResources().getDisplayMetrics().density));
             bar.animate().alpha(1f).translationY(0f).setDuration(220).start();
@@ -616,6 +622,14 @@ public class ActivityMain extends ActivityBase {
         super.onConfigurationChanged(newConfig);
         if (drawerToggle != null)
             drawerToggle.onConfigurationChanged(newConfig);
+    }
+
+    @Override
+    protected void onDestroy() {
+        navigationHandler.removeCallbacksAndMessages(null);
+        View bar = findViewById(R.id.bottom_app_filter);
+        if (bar != null) bar.animate().withEndAction(null).cancel();
+        super.onDestroy();
     }
 
     @Override

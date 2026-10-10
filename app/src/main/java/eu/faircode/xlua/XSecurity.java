@@ -77,11 +77,11 @@ public class XSecurity {
         //This will check caller to make sure its either 'SYSTEM' , Current App or 'PRO COMPONENT'
         //Does not Modify Anything, just checks caller makes sure its not an imposter
         //Ensure when calling this method, its not called from a different thread as the caller or result will not be good!!
-        int callingUserId = XUtil.getAppId(Binder.getCallingUid());
+        int callingUserId = Binder.getCallingUid();
         Log.i(TAG, "Checking caller id=" + callingUserId);
         long oIdentity = Binder.clearCallingIdentity();
         try {
-            if(isSystemProcess(callingUserId))
+            if(isSystemProcess(XUtil.getAppId(callingUserId)))
                 return;
 
             PackageManager pm = context.getPackageManager();

@@ -89,19 +89,17 @@ public class FileDialogUtils {
      */
     @Nullable
     public static String readFileContent(@NonNull Context context, @NonNull Uri uri) {
-        try {
-            InputStream inputStream = context.getContentResolver().openInputStream(uri);
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             if (inputStream == null) return null;
 
             StringBuilder stringBuilder = new StringBuilder();
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stringBuilder.append(line);
+            char[] buffer = new char[8192];
+            int count;
+            while ((count = reader.read(buffer)) != -1) {
+                stringBuilder.append(buffer, 0, count);
             }
-
-            inputStream.close();
             return stringBuilder.toString();
 
         } catch (Exception e) {
@@ -116,17 +114,13 @@ public class FileDialogUtils {
      * Writes content to a URI
      */
     public static boolean writeFileContent(@NonNull Context context, @NonNull Uri uri, @NonNull String content) {
-        try {
-            ParcelFileDescriptor pfd = context.getContentResolver()
-                    .openFileDescriptor(uri, "w");
+        try (ParcelFileDescriptor pfd = context.getContentResolver()
+                    .openFileDescriptor(uri, "wt")) {
             if (pfd == null) return false;
 
-            FileOutputStream fileOutputStream =
-                    new FileOutputStream(pfd.getFileDescriptor());
-            fileOutputStream.write(content.getBytes(StandardCharsets.UTF_8));
-
-            fileOutputStream.close();
-            pfd.close();
+            try (FileOutputStream fileOutputStream = new FileOutputStream(pfd.getFileDescriptor())) {
+                fileOutputStream.write(content.getBytes(StandardCharsets.UTF_8));
+            }
             return true;
 
         } catch (Exception e) {

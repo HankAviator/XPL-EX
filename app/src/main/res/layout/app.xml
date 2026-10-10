@@ -154,5 +154,5 @@
         android:id="@+id/grpExpanded"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:constraint_referenced_ids="cbForceStop,rvGroup,ivGroupProfile" />
+        app:constraint_referenced_ids="cbForceStop,rvGroup" />
 </androidx.constraintlayout.widget.ConstraintLayout>

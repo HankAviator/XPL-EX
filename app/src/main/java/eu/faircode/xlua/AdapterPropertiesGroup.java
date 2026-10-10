@@ -119,7 +119,7 @@ public class AdapterPropertiesGroup extends RecyclerView.Adapter<AdapterProperti
             spRandomizer.addAll(GlobalRandoms.getRandomizers());
             //Init settings Adapter
             rvGroupProps = itemView.findViewById(R.id.rvGroupProperties);
-            rvGroupProps.setHasFixedSize(true);
+            rvGroupProps.setHasFixedSize(false);
             LinearLayoutManager llm = new LinearLayoutManager(itemView.getContext());
             llm.setAutoMeasureEnabled(true);
             rvGroupProps.setLayoutManager(llm);

@@ -98,6 +98,10 @@ public class FragmentMain extends Fragment implements ILoader {
     @Override
     @Nullable
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            selectedGroup = savedInstanceState.getString("selectedRestrictionGroup");
+            panelExpanded = savedInstanceState.getBoolean("filterPanelExpanded", true);
+        }
         final View main = inflater.inflate(R.layout.restrictions, container, false);
 
         ActivityMain.manager.ensureIsOpen(requireContext(), PrefManager.SETTINGS_MAIN);
@@ -216,6 +220,13 @@ public class FragmentMain extends Fragment implements ILoader {
     public void onPause() {
         super.onPause();
         Objects.requireNonNull(getContext()).unregisterReceiver(packageChangedReceiver);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("selectedRestrictionGroup", selectedGroup);
+        outState.putBoolean("filterPanelExpanded", panelExpanded);
     }
 
     public AdapterApp.enumShow getShow() {

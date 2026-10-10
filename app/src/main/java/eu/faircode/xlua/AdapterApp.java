@@ -105,13 +105,13 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
     private ILoader fragmentLoader;
     private boolean warn = false;
 
-    private enumShow show = enumShow.icon;
-    private String group = null;
-    private CharSequence query = null;
+    private volatile enumShow show = enumShow.icon;
+    private volatile String group = null;
+    private volatile CharSequence query = null;
     private List<String> collection = new ArrayList<>();
     private boolean dataChanged = false;
     private List<XHook> hooks = new ArrayList<>();
-    private final List<AppXpPacket> all = new ArrayList<>();
+    private volatile List<AppXpPacket> all = java.util.Collections.emptyList();
     private List<AppXpPacket> filtered = new ArrayList<>();
     private final Map<String, Boolean> expanded = new HashMap<>();
 
@@ -156,7 +156,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
             //ivProfile = itemView.findViewById(R.id.ivGroupProfile);
 
             rvGroup = itemView.findViewById(R.id.rvGroup);
-            rvGroup.setHasFixedSize(true);
+            rvGroup.setHasFixedSize(false);
             rvGroup.setItemAnimator(null);
             rvGroup.setItemViewCacheSize(4);
             rvGroup.setNestedScrollingEnabled(false);
@@ -320,6 +320,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
             try {
                 Log.i(TAG, "Check changed");
                 final AppXpPacket app = filtered.get(getAdapterPosition());
+                final String requestedGroup = group;
                 final Context context = compoundButton.getContext();
                 switch (compoundButton.getId()) {
                     case R.id.cbAssigned:
@@ -335,25 +336,25 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
                                             warn = false;
                                         }catch (Exception ignored) { }
                                         TryRun.onMain(() -> {
-                                            updateAssignments(context, app, group, checked);
-                                            notifyItemChanged(getAdapterPosition());
+                                            updateAssignments(context, app, requestedGroup, checked);
+                                            refreshApp(app);
                                         });
                                     })
                                     .onCancel(() -> {
                                         TryRun.onMain(() -> {
-                                            notifyItemChanged(getAdapterPosition());
+                                            refreshApp(app);
                                         });
                                     })
                                     .show(fragmentLoader.getManager(), context.getString(R.string.warning_bulk_check_title));
                         } else {
-                            updateAssignments(context, app, group, checked);
-                            notifyItemChanged(getAdapterPosition());
+                            updateAssignments(context, app, requestedGroup, checked);
+                            refreshApp(app);
                         }
                         break;
                     case R.id.cbForceStop:
                         app.forceStop = checked;
                         executor.submit(() -> {
-                            final A_CODE result = PutSettingExCommand.putForceStop(compoundButton.getContext(), app.uid, app.packageName, app.forceStop);
+                            final A_CODE result = PutSettingExCommand.putForceStop(compoundButton.getContext(), app.uid, app.packageName, checked);
                             new Handler(Looper.getMainLooper()).post(new Runnable() {
                                 @SuppressLint("NotifyDataSetChanged")
                                 @Override
@@ -373,7 +374,9 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
         @Override
         public void setAssigned(Context context, String groupName, boolean assign) {
             Log.i(TAG, "Group changed: " + groupName);
-            AppXpPacket app = filtered.get(getAdapterPosition());
+            int position = getBindingAdapterPosition();
+            if (position == RecyclerView.NO_POSITION || position >= filtered.size()) return;
+            AppXpPacket app = filtered.get(position);
             updateAssignments(context, app, groupName, assign);
             notifyItemChanged(getAdapterPosition());
         }
@@ -456,11 +459,23 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
         }
 
         void updateExpand() {
-            AppXpPacket app = filtered.get(getAdapterPosition());
+            int position = getBindingAdapterPosition();
+            if (position == RecyclerView.NO_POSITION || position >= filtered.size()) return;
+            AppXpPacket app = filtered.get(position);
             boolean isExpanded = (group == null && expanded.containsKey(app.packageName) && Boolean.TRUE.equals(expanded.get(app.packageName)));
             ivExpander.setImageLevel(isExpanded ? 1 : 0);
             ivExpander.setVisibility(group == null ? View.VISIBLE : View.INVISIBLE);
             grpExpanded.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void refreshApp(AppXpPacket app) {
+        for (int i = 0; i < filtered.size(); i++) {
+            AppXpPacket current = filtered.get(i);
+            if (current.uid == app.uid && Objects.equals(current.packageName, app.packageName)) {
+                notifyItemChanged(i);
+                return;
+            }
         }
     }
 
@@ -524,7 +539,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
 
     void set(List<String> collection, List<XHook> hooks, List<AppXpPacket> apps) {
         permissionCache.clear();
-        this.dataChanged = (this.hooks.size() != hooks.size());
+        this.dataChanged |= (this.hooks.size() != hooks.size());
         for (int i = 0; i < this.hooks.size() && !this.dataChanged; i++) {
             XHook hook = this.hooks.get(i);
             XHook other = hooks.get(i);
@@ -625,8 +640,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
 
         Collections.sort(apps, (app1, app2) -> collator.compare(app1.label, app2.label));
 
-        all.clear();
-        all.addAll(apps);
+        all = new ArrayList<>(apps);
         getFilter().filter(query);
     }
 
@@ -729,30 +743,17 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
     public Filter getFilter() {
         if (appFilter != null) return appFilter;
         return appFilter = new Filter() {
-            private boolean expanded1 = false;
 
             @Override
             protected FilterResults performFiltering(CharSequence query) {
                 AdapterApp.this.query = query;
 
                 List<AppXpPacket> visible = new ArrayList<>();
-                if (show == enumShow.all || !TextUtils.isEmpty(query))
-                    visible.addAll(all);
-                else
-                    for (AppXpPacket app : all) {
-                        if(show == enumShow.system) {
-                            if(app.system)
-                                visible.add(app);
-                        }
-                        else if(show == enumShow.hook) {
-                            if(ListUtil.size(app.assignments) > 0)
-                                visible.add(app);
-                        } else {
-                            if (app.uid > Process.FIRST_APPLICATION_UID && app.enabled && (show == enumShow.icon ? app.icon > 0 : !app.system)) {
-                                visible.add(app);
-                            }
-                        }
-                    }
+                final String mode = show.name();
+                for (AppXpPacket app : all) {
+                    if (AppModeFilter.matches(mode, app.uid, app.enabled, app.system,
+                            app.icon, ListUtil.size(app.assignments))) visible.add(app);
+                }
 
                 List<AppXpPacket> results = new ArrayList<>();
 
@@ -782,7 +783,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
                 if (TextUtils.isEmpty(query))
                     results.addAll(visible);
                 else {
-                    String q = query.toString().toLowerCase().trim();
+                    String q = query.toString().toLowerCase(java.util.Locale.ROOT).trim();
 
                     boolean restricted = false;
                     boolean unrestricted = false;
@@ -819,7 +820,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
 
                     for (AppXpPacket app : visible) {
                         if (restricted || unrestricted) {
-                            int assignments = app.getAssignments(group).size();
+                            int assignments = app.getAssignments(selectedGroup).size();
                             if (restricted && assignments == 0)
                                 continue;
                             if (unrestricted && assignments > 0)
@@ -830,17 +831,9 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
                         if (user && app.system)
                             continue;
                         if (app.uid == uid ||
-                                app.packageName.toLowerCase().contains(q) ||
-                                (app.label != null && app.label.toLowerCase().contains(q)))
+                                app.packageName.toLowerCase(java.util.Locale.ROOT).contains(q) ||
+                                (app.label != null && app.label.toLowerCase(java.util.Locale.ROOT).contains(q)))
                             results.add(app);
-                    }
-                }
-
-                if (results.size() == 1) {
-                    String packageName = results.get(0).packageName;
-                    if (!expanded.containsKey(packageName)) {
-                        expanded1 = true;
-                        expanded.put(packageName, true);
                     }
                 }
 
@@ -856,6 +849,15 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
                         ? new ArrayList<AppXpPacket>()
                         : (List<AppXpPacket>) result.values);
                 Log.i(TAG, "Filtered apps count=" + apps.size());
+
+                boolean expanded1 = false;
+                if (apps.size() == 1) {
+                    String packageName = apps.get(0).packageName;
+                    if (!expanded.containsKey(packageName)) {
+                        expanded1 = true;
+                        expanded.put(packageName, true);
+                    }
+                }
 
                 if (dataChanged) {
                     dataChanged = false;
@@ -900,7 +902,7 @@ public class AdapterApp extends RecyclerView.Adapter<AdapterApp.ViewHolder> impl
             AppXpPacket app2 = next.get(newItemPosition);
 
             if (!Objects.equals(app1.icon, app2.icon) ||
-                    !app1.label.equals(app2.label) ||
+                    !Objects.equals(app1.label, app2.label) ||
                     app1.enabled != app2.enabled ||
                     app1.persistent != app2.persistent ||
                     app1.getAssignments(group).size() != app2.getAssignments(group).size())

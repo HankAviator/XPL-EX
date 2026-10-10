@@ -33,6 +33,11 @@ public class XUiGroup {
         if (!(obj instanceof XUiGroup))
             return false;
         XUiGroup other = (XUiGroup) obj;
-        return this.name.equals(other.name);
+        return java.util.Objects.equals(this.name, other.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hashCode(name);
     }
 }

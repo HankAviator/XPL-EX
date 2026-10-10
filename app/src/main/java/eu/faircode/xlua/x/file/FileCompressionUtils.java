@@ -82,12 +82,15 @@ public class FileCompressionUtils {
                  ZipInputStream zis = new ZipInputStream(fis)) {
                 ZipEntry entry;
                 while ((entry = zis.getNextEntry()) != null) {
-                    File newFile = new File(targetFolder, entry.getName());
+                    File newFile = resolveEntry(targetFolder, entry.getName());
                     if (entry.isDirectory()) {
-                        if (!newFile.mkdirs()) {
+                        if (!newFile.isDirectory() && !newFile.mkdirs()) {
                             throw new IOException("Failed to create directory: " + newFile.getAbsolutePath());
                         }
                     } else {
+                        File parent = newFile.getParentFile();
+                        if (!parent.isDirectory() && !parent.mkdirs())
+                            throw new IOException("Failed to create directory: " + parent);
                         try (FileOutputStream fos = new FileOutputStream(newFile)) {
                             byte[] buffer = new byte[1024];
                             int length;
@@ -102,5 +105,14 @@ public class FileCompressionUtils {
         }catch (Exception e) {
             Log.e(TAG, Str.fm("Failed to Decompress Zip, %s Target=%s  Error=%s", zipFile.getAbsolutePath(), targetFolder.getAbsolutePath(), e));
         }
+    }
+
+    static File resolveEntry(File targetFolder, String name) throws IOException {
+        File root = targetFolder.getCanonicalFile();
+        File output = new File(root, name).getCanonicalFile();
+        if (new File(name).isAbsolute() || !output.toPath().startsWith(root.toPath())
+                || output.equals(root))
+            throw new IOException("ZIP entry escapes destination: " + name);
+        return output;
     }
 }
