@@ -150,8 +150,8 @@ public class FragmentMain extends Fragment implements ILoader {
         rvAdapter = new AdapterApp(getActivity(), this, warn);
         rvApplication.setAdapter(rvAdapter);
 
-        spAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
-        spAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spAdapter = new ArrayAdapter<>(requireContext(), R.layout.dashboard_popup_item);
+        spAdapter.setDropDownViewResource(R.layout.dashboard_popup_item);
 
         spGroup = main.findViewById(R.id.spGroup);
         spGroup.setTag(null);
@@ -223,6 +223,58 @@ public class FragmentMain extends Fragment implements ILoader {
 
     public void filter(String query) {
         if (rvAdapter != null) rvAdapter.getFilter().filter(query);
+    }
+
+    /** Toggle the overlay filter row without changing the selected group or list data. */
+    public void setFilterPanelVisible(boolean visible, boolean animate) {
+        View selector = spGroup;
+        View restrictButton = btnRestrict;
+        View restrictLabel = tvRestrict;
+        if (selector == null || restrictButton == null || restrictLabel == null)
+            return;
+
+        if (!visible) {
+            View[] controls = {selector, restrictButton, restrictLabel};
+            for (View control : controls)
+                control.animate().cancel();
+            if (!animate) {
+                for (View control : controls) control.setVisibility(View.GONE);
+                return;
+            }
+            selector.setVisibility(View.VISIBLE);
+            selector.animate().alpha(0f).translationY(-10f).setDuration(160).start();
+            restrictButton.animate().alpha(0f).translationY(-10f).setDuration(160).start();
+            restrictLabel.animate().alpha(0f).translationY(-10f).setDuration(160)
+                    .withEndAction(() -> {
+                        for (View control : controls) {
+                            control.setVisibility(View.GONE);
+                            control.setAlpha(1f);
+                            control.setTranslationY(0f);
+                        }
+                    }).start();
+            return;
+        }
+
+        selector.setVisibility(View.VISIBLE);
+        updateRestrictionVisibility();
+        View[] controls = {selector, restrictButton, restrictLabel};
+        for (View control : controls) {
+            if (control.getVisibility() == View.VISIBLE) {
+                control.setAlpha(animate ? 0f : 1f);
+                control.setTranslationY(animate ? -10f : 0f);
+                if (animate)
+                    control.animate().alpha(1f).translationY(0f).setDuration(180).start();
+            }
+        }
+    }
+
+    private void updateRestrictionVisibility() {
+        XUiGroup selected = spGroup == null ? null : (XUiGroup) spGroup.getSelectedItem();
+        boolean hasGroup = selected != null && selected.name != null;
+        if (tvRestrict != null)
+            tvRestrict.setVisibility(hasGroup ? View.GONE : View.VISIBLE);
+        if (btnRestrict != null)
+            btnRestrict.setVisibility(hasGroup ? View.VISIBLE : View.GONE);
     }
 
     @Override

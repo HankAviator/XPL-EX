@@ -119,6 +119,7 @@ public class ActivityMain extends ActivityBase {
     private final XBackup backup = new XBackup();
     private final Handler navigationHandler = new Handler();
     private Runnable hideNavigation;
+    private boolean filterPanelExpanded = true;
 
     @Override
     protected boolean useCustomToolbar() {
@@ -684,61 +685,7 @@ public class ActivityMain extends ActivityBase {
         manager.ensureIsOpen(ActivityMain.this, PrefManager.SETTINGS_MAIN);
         switch (item.getItemId()) {
             case R.id.menu_show:
-                AdapterApp.enumShow show = (fragmentMain == null ? AdapterApp.enumShow.none : fragmentMain.getShow());
-                this.menu.findItem(R.id.menu_show_user).setEnabled(show != AdapterApp.enumShow.none);
-                this.menu.findItem(R.id.menu_show_icon).setEnabled(show != AdapterApp.enumShow.none);
-                this.menu.findItem(R.id.menu_show_all).setEnabled(show != AdapterApp.enumShow.none);
-                this.menu.findItem(R.id.menu_show_hook).setEnabled(show != AdapterApp.enumShow.none);
-                this.menu.findItem(R.id.menu_show_system).setEnabled(show != AdapterApp.enumShow.none);
-                switch (show) {
-                    case user:
-                        this.menu.findItem(R.id.menu_show_user).setChecked(true);
-                        break;
-                    case icon:
-                        this.menu.findItem(R.id.menu_show_icon).setChecked(true);
-                        break;
-                    case all:
-                        this.menu.findItem(R.id.menu_show_all).setChecked(true);
-                        break;
-                    case hook:
-                        this.menu.findItem(R.id.menu_show_hook).setChecked(true);
-                        break;
-                    case system:
-                        this.menu.findItem(R.id.menu_show_system).setChecked(true);
-                        break;
-                }
-                return true;
-            case R.id.menu_show_system:
-            case R.id.menu_show_hook:
-            case R.id.menu_show_user:
-            case R.id.menu_show_icon:
-            case R.id.menu_show_all:
-                item.setChecked(!item.isChecked());
-                final AdapterApp.enumShow set;
-                switch (item.getItemId()) {
-                    case R.id.menu_show_user:
-                        set = AdapterApp.enumShow.user;
-                        manager.putString(PrefManager.SETTING_APPS_SHOW, "show_user");
-                        break;
-                    case R.id.menu_show_all:
-                        set = AdapterApp.enumShow.all;
-                        manager.putString(PrefManager.SETTING_APPS_SHOW, "show_all");
-                        break;
-                    case R.id.menu_show_hook:
-                        set = AdapterApp.enumShow.hook;
-                        manager.putString(PrefManager.SETTING_APPS_SHOW, "show_hook");
-                        break;
-                    case R.id.menu_show_system:
-                        set = AdapterApp.enumShow.system;
-                        manager.putString(PrefManager.SETTING_APPS_SHOW, "show_system");
-                        break;
-                    default:
-                        set = AdapterApp.enumShow.icon;
-                        manager.putString(PrefManager.SETTING_APPS_SHOW, "show_icon");
-                        break;
-                }
-
-                fragmentMain.setShow(set);
+                setFilterPanelExpanded(!filterPanelExpanded, true);
                 return true;
             case R.id.menu_help:
                 menuHelp();
@@ -770,6 +717,13 @@ public class ActivityMain extends ActivityBase {
 
 
     public void updateMenu(Menu menu) {
+        MenuItem panelToggle = menu.findItem(R.id.menu_show);
+        if (panelToggle != null) {
+            panelToggle.setIcon(filterPanelExpanded
+                    ? R.drawable.ic_expand_less_white_24dp
+                    : R.drawable.ic_expand_more_white_24dp);
+            panelToggle.setTitle(filterPanelExpanded ? "Скрыть фильтры" : "Показать фильтры");
+        }
         MenuItem menuSearch = menu.findItem(R.id.menu_search);
         final SearchView searchView = (SearchView) menuSearch.getActionView();
         if (searchView != null) {
@@ -777,6 +731,21 @@ public class ActivityMain extends ActivityBase {
             if (pkg != null) {
                 menuSearch.expandActionView();
                 searchView.setQuery(pkg, true);
+            }
+        }
+    }
+
+    private void setFilterPanelExpanded(boolean expanded, boolean animate) {
+        filterPanelExpanded = expanded;
+        if (fragmentMain != null)
+            fragmentMain.setFilterPanelVisible(expanded, animate);
+        if (menu != null) {
+            MenuItem panelToggle = menu.findItem(R.id.menu_show);
+            if (panelToggle != null) {
+                panelToggle.setIcon(expanded
+                        ? R.drawable.ic_expand_less_white_24dp
+                        : R.drawable.ic_expand_more_white_24dp);
+                panelToggle.setTitle(expanded ? "Скрыть фильтры" : "Показать фильтры");
             }
         }
     }

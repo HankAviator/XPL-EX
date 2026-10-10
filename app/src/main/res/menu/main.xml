@@ -27,31 +27,9 @@
     </item>
     <item
         android:id="@+id/menu_show"
-        android:icon="@drawable/ic_filter_list_white_24dp"
+        android:icon="@drawable/ic_expand_less_white_24dp"
         android:title="@string/menu_show"
-        app:showAsAction="always">
-        <menu>
-            <group
-                android:id="@+id/groupShow"
-                android:checkableBehavior="single">
-                <item
-                    android:id="@+id/menu_show_user"
-                    android:title="@string/menu_show_user" />
-                <item
-                    android:id="@+id/menu_show_icon"
-                    android:title="@string/menu_show_icon" />
-                <item
-                    android:id="@+id/menu_show_all"
-                    android:title="@string/menu_show_all" />
-                <item
-                    android:id="@+id/menu_show_hook"
-                    android:title="@string/menu_show_hook" />
-                <item
-                    android:id="@+id/menu_show_system"
-                    android:title="@string/menu_show_system" />
-            </group>
-        </menu>
-    </item>
+        app:showAsAction="always" />
     <item
         android:id="@+id/menu_search"
         android:icon="@drawable/ic_search_white_24dp"
