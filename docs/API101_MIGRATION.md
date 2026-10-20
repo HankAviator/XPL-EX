@@ -23,6 +23,17 @@ both the old Android framework and Settings Provider scopes: under API 101,
 valid independent scope target. Users can continue to select arbitrary
 applications in LSPosed, which is required by XPL-EX.
 
+Hook assignments made in the module app now request dynamic scope through
+`io.github.libxposed:service:101.0.0`, after the assignment command succeeds.
+This covers both assignment APIs, including settings that automatically assign
+hooks and configuration imports. LSPosed may require approval before adding
+the target. Already scoped packages are skipped, and assignments made before
+service delivery are queued for the lifetime of the app process. Scope requests
+apply to the Android user running the module app; configure other profiles from
+that profile's module app or LSPosed. Removing hooks does not remove LSPosed
+scope. The APK's static recommended `scope.list` remains `system`; runtime
+requests add selected targets to actual scope rather than rewriting that list.
+
 ## Hook inventory
 
 | Hook group | Class / member | Process | Callback behavior | Device test |
