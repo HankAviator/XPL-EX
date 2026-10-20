@@ -1,6 +1,7 @@
 package eu.faircode.xlua.xposed.api101;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.os.Process;
 import android.util.Log;
 
@@ -12,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import eu.faircode.xlua.BuildConfig;
+import eu.faircode.xlua.api.XProxyContent;
+import eu.faircode.xlua.x.xlua.identity.UserIdentity;
 import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
 
@@ -52,21 +55,47 @@ public final class LsposedScope {
         });
     }
 
-    public static void request(Context context, int uid, String packageName) {
+    public static void synchronize(Context context, int uid, String packageName) {
         // Service requests affect the calling Android user, not an arbitrary profile.
         if (!BuildConfig.APPLICATION_ID.equals(context.getPackageName())
                 || uid < 0 || uid / 100000 != Process.myUid() / 100000)
             return;
         initialize();
+        Context application = context.getApplicationContext();
         WORKER.execute(() -> {
-            QUEUE.add(packageName);
-            flush();
+            // Read the saved assignments, not the checkbox or the deletion
+            // packet: deleting one hook must retain scope if others remain.
+            try (Cursor assignments = XProxyContent.luaQuery(application, "getAssignments",
+                    UserIdentity.createSnakeQueryUID(uid, packageName))) {
+                if (assignments == null) {
+                    Log.w(TAG, "Could not read assignments for " + packageName);
+                    return;
+                }
+                if (assignments.getCount() > 0)
+                    QUEUE.add(packageName);
+                else
+                    QUEUE.remove(packageName);
+                flush();
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Could not synchronize LSPosed scope for " + packageName, e);
+            }
         });
     }
 
     private static void flush() {
         if (service == null)
             return;
+        Set<String> removals = QUEUE.takeRemovals();
+        if (!removals.isEmpty()) {
+            try {
+                service.removeScope(new ArrayList<>(removals));
+                Log.i(TAG, "Scope removed: " + removals);
+            } catch (RuntimeException e) {
+                QUEUE.retryRemovals(removals);
+                Log.w(TAG, "Could not remove LSPosed scope", e);
+                return;
+            }
+        }
         Set<String> request = new HashSet<>();
         try {
             request.addAll(QUEUE.take(new HashSet<>(service.getScope())));
@@ -78,8 +107,10 @@ public final class LsposedScope {
                 @Override
                 public void onScopeRequestApproved(List<String> approved) {
                     WORKER.execute(() -> {
-                        if (service == submittingService)
+                        if (service == submittingService) {
                             QUEUE.complete(submitted);
+                            flush();
+                        }
                         Log.i(TAG, "Scope approved: " + approved);
                     });
                 }
@@ -87,8 +118,10 @@ public final class LsposedScope {
                 @Override
                 public void onScopeRequestFailed(String message) {
                     WORKER.execute(() -> {
-                        if (service == submittingService)
+                        if (service == submittingService) {
                             QUEUE.complete(submitted);
+                            flush();
+                        }
                         Log.w(TAG, "Scope request failed: " + message);
                     });
                 }

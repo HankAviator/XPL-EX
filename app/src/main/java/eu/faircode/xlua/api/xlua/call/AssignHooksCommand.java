@@ -33,9 +33,8 @@ public class AssignHooksCommand extends CallCommandHandler {
                 context,
                 "assignHooks",
                 packet.toBundle());
-        if (XResult.from(result).succeeded() && !packet.isDelete()
-                && packet.getHookIds() != null && !packet.getHookIds().isEmpty())
-            LsposedScope.request(context, packet.getUser(), packet.getCategory());
+        if (XResult.from(result).succeeded())
+            LsposedScope.synchronize(context, packet.getUser(), packet.getCategory());
         return result;
     }
 }
